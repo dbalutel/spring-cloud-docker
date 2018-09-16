@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 
 @RestController
 @Log
@@ -23,6 +24,9 @@ public class CurrencyConversionController {
 
     @GetMapping("/conversion-rate/from/{from}/to/{to}")
     public CurrencyConversion getCurrencyConversion(@PathVariable String from, @PathVariable String to) {
+        if (ThreadLocalRandom.current().nextInt() % 2 == 0) {
+            throw new RuntimeException();
+        }
         log.warning(">>Request CCC");
         CurrencyConversion currencyConversion = currencyConversionRepository.findByFromAndTo(from, to);
         currencyConversion.setPort(Integer.valueOf(Objects.requireNonNull(environment.getProperty("local.server.port"))));
