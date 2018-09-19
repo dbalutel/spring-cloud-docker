@@ -1,0 +1,91 @@
+version: '3'
+services: 
+  rabbit: 
+    image: rabbitmq
+    ports: 
+      - "5672:5672"
+      - "15672:15672" 
+    networks: 
+      - spring-cloud
+
+  zipkin: 
+    image: openzipkin/zipkin
+    ports: 
+      - "9411:9411"
+    environment:
+      - RABBIT_URI=amqp://rabbit
+    networks:
+      - spring-cloud
+    depends_on:
+      - rabbit
+
+  eureka:
+    build:
+      context: ./discovery-server
+      args:
+        - JAR_FILE=./target/discovery-server-0.0.1-SNAPSHOT.jar
+        - CONFIG_URI=http://config-server
+    ports: 
+      - "8761:8761"
+    depends_on:
+      - config-server
+    networks:
+      - spring-cloud
+
+  config-server:
+    build:
+      context: ./spring-cloud-config-server
+      args:
+        - JAR_FILE=./target/spring-cloud-config-server-0.0.1-SNAPSHOT.jar
+        - RABBIT_URI=rabbit
+        - CONFIG_REPO=file://./config-repo
+    depends_on:
+      - rabbit
+    ports: 
+      - "8888:8888"
+    networks:
+      - spring-cloud
+
+  gateway-server:
+    build:
+      context: ./gateway-server
+      args:
+        - EUREKA_URI=http://eureka
+        - CONFIG_URI=http://config-server
+        - JAR_FILE=./target/gateway-server-0.0.1-SNAPSHOT.jar
+    ports: 
+      - "9999:9999"
+    depends_on:
+      - eureka
+      - config-server
+    networks:
+      - spring-cloud
+
+  exchange-service:
+    build:
+      context: ./currency-exchange-service
+      args:
+        - EUREKA_URI=http://eureka
+        - CONFIG_URI=http://config-server
+        - JAR_FILE=./target/currency-exchange-service-0.0.1-SNAPSHOT.jar
+    depends_on:
+      - eureka
+      - config-server
+    networks:
+      - spring-cloud
+
+  conversion-service:
+    build:
+      context: ./currency-conversion-service
+      args:
+        - EUREKA_URI=http://eureka
+        - CONFIG_URI=http://config-server
+        - JAR_FILE=./target/currency-conversion-service-0.0.1-SNAPSHOT.jar
+    depends_on:
+      - eureka
+      - config-server
+    networks:
+      - spring-cloud
+
+networks:
+  spring-cloud:
